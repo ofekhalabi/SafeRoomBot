@@ -192,3 +192,7 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+
+#  This file is used to store the bot token for authentication purposes. It is recommended to keep this file private and not share it publicly.
+bot_token.txt
