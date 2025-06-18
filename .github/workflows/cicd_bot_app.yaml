@@ -29,8 +29,6 @@ jobs:
           echo "login success"
 
           IMAGE_NAME=$DOCKERHUB_USERNAME/SafeRoomBot:${{ github.run_number }}
-          echo $(pwd)
-          echo $(ls)
           cd bot
           docker build -t $IMAGE_NAME .
           echo "New Docker build"
