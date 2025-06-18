@@ -30,6 +30,7 @@ jobs:
 
           IMAGE_NAME=$DOCKERHUB_USERNAME/saferoombot:${{ github.run_number }}
           cd bot
+          echo $(ls)
           docker build -t $IMAGE_NAME .
           echo "New Docker build"
           docker push $IMAGE_NAME
