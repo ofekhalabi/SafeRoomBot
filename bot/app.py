@@ -31,7 +31,7 @@ DATA_FILE = "responses.json"
 MISSING_RESPONSES_FILE = "missing_responses.json"
 expected_names = [
     "roeisheffer", "gaialu", "Ofek Halabi", "lavinag", "Itay Ben kimon",
-    "stav_eini", "Ofek Barhum"
+    "stav_eini", "Ofek Barhum","ronens2001"
 ]
 
 # --------------------------------------------------
