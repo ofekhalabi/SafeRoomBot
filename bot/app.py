@@ -23,7 +23,7 @@ if not RECEIVER_EMAIL:
 
 DATA_FILE = "responses.json"
 MISSING_RESPONSES_FILE = "missing_responses.json"
-expected_names = ["roeisheffer", "gaialu", "Ofek Halabi", "lavinag", "Itay Ben kimon","stav_eini"]
+expected_names = ["roeisheffer", "gaialu", "Ofek Halabi", "lavinag", "Itay Ben kimon","stav_eini", "Ofek Barhum"]
 
 user_followup_state = {}
 
