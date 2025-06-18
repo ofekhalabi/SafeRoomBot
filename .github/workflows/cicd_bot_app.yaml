@@ -29,11 +29,12 @@ jobs:
           echo "login success"
 
           IMAGE_NAME=$DOCKERHUB_USERNAME/saferoombot:${{ github.run_number }}
+          latest=$DOCKERHUB_USERNAME/saferoombot:latest
           cd bot
           echo $(ls)
           docker build -t $IMAGE_NAME .
           echo "New Docker build"
           docker push $IMAGE_NAME
-
+          docker build -t $latest --push .
 
   
