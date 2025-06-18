@@ -28,7 +28,8 @@ jobs:
           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
           echo "login success"
 
-          IMAGE_NAME=$DOCKERHUB_USERNAME/netflix-frontend:${{ github.run_number }}
+          IMAGE_NAME=$DOCKERHUB_USERNAME/SafeRoomBot:${{ github.run_number }}
+          echo $(pwd)
           docker build -t $IMAGE_NAME .
           echo "New Docker build"
           docker push $IMAGE_NAME
