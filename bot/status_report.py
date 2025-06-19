@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 import yagmail
+from config import name_mapping  # כאן נמצא המילון: {שם_מקורי: שם_לצגה}
 
 # משתנים גלובליים
 status_check_active = False
@@ -9,10 +10,10 @@ status_check_start_time = None
 
 # נא להחליף ל-user_id אמיתיים של המשתמשים
 participants_user_ids = {
-    "gaialu": 5903107616,
+    "Gaia Luvchik": 5903107616,
     "Ofek Halabi": 7893093742,
-    "lavinag": 1314376201,
-    "Itay Ben kimon": 56789012, # נא להחליף ל-user_id אמיתי
+    "Sopo": 1314376201,
+    "Itay Ben kimon": 56789012,
     "סתיו עיני": 6557978538,
     "Roei Sheffer": 637947209,
     "Ofek Barhum": 6514536577
@@ -38,8 +39,9 @@ async def trigger_status_check(context, sender_email, sender_password, receiver_
     for name, user_id in participants_user_ids.items():
         try:
             await context.bot.send_message(chat_id=user_id, text=message)
+            print(f"✅ Message sent to {name}")
         except Exception as e:
-            print(f"❌ Error sending message to{name}: {e}")
+            print(f"❌ Error sending message to {name}: {e}")
 
     asyncio.create_task(collect_status_check_results(sender_email, sender_password, receiver_email))
 
@@ -50,11 +52,12 @@ async def collect_status_check_results(sender_email, sender_password, receiver_e
 
     report = []
     for name in expected_names:
+        display_name = name_mapping.get(name, name)
         status = status_check_responses.get(name)
         if status:
-            report.append({"name": name, "status": status})
+            report.append({"name": display_name, "status": status})
         else:
-            report.append({"name": name, "status": "לא ענה"})
+            report.append({"name": display_name, "status": "לא ענה"})
 
     content = "\n".join([f"{r['name']}: {r['status']}" for r in report])
 

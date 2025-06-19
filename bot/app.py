@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import yagmail
+from config import name_mapping  # מילון {שם_מקורי: שם_לצגה}
 
 from status_report import (
     is_status_check_active,
@@ -81,11 +82,13 @@ def save_response(user, response, reason=None):
     except FileNotFoundError:
         data = []
 
+    # הסרת תגובות קודמות של המשתמש
     data = [entry for entry in data if entry["user_id"] != user.id]
+    mapped_name = name_mapping.get(user.full_name, user.full_name)
     entry = {
         "user_id": user.id,
         "username": user.username,
-        "name": user.full_name,
+        "name": mapped_name,
         "response": response,
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     }
@@ -100,15 +103,23 @@ def send_missing_email():
     if not os.path.exists(MISSING_RESPONSES_FILE):
         return
     with open(MISSING_RESPONSES_FILE, 'r', encoding='utf-8') as f:
-        content = f.read()
-    if not content.strip():
+        data = json.load(f)
+    if not data:
         return
+
+    lines = []
+    for entry in data:
+        lines.append(f"{entry['name']}: {entry['status']}")
+
+    content = "\n".join(lines)
+
     yag = yagmail.SMTP(SENDER_EMAIL, SENDER_PASSWORD)
     yag.send(
         to=RECEIVER_EMAIL,
         subject="משתמשים שלא ענו כן",
-        contents=f"הנה תוכן הקובץ missing_responses.json:\n\n{content}"
+        contents=f"הנה דוח מצב:\n\n{content}"
     )
+
 
 async def monitor_responses():
     email_sent = False
@@ -131,8 +142,7 @@ async def monitor_responses():
                 continue
 
             now = datetime.now(timezone.utc)
-            five_minutes_ago = now - timedelta(minutes=5)
-            seven_minutes_ago = now - timedelta(minutes=7)
+            seven_minutes_ago = now - timedelta(minutes=)
             first_timestamp = min(
                 datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
                 for entry in data
@@ -146,10 +156,12 @@ async def monitor_responses():
                         "response": entry["response"],
                         "timestamp": timestamp
                     }
+            
             problematic_users = []
             for name in expected_names:
+                display_name = name_mapping.get(name, name)
                 if name not in latest_responses:
-                    problematic_users.append({"name": name, "status": "לא ענה בכלל"})
+                    problematic_users.append({"name": display_name, "status": "לא ענה בכלל"})
                 else:
                     entry = latest_responses[name]
                     if entry["response"] != "כן":
@@ -157,9 +169,7 @@ async def monitor_responses():
                         reason = next((e.get("reason") for e in data if e["name"] == name and e["response"] != "כן"), None)
                         if reason:
                             status_text += f", סיבה: {reason}"
-                        problematic_users.append({"name": name, "status": status_text})
-                    elif entry["timestamp"] < five_minutes_ago:
-                        problematic_users.append({"name": name, "status": f"ענה כן באיחור ({entry['timestamp'].strftime('%H:%M:%S')})"})
+                        problematic_users.append({"name": display_name, "status": status_text})
 
             if problematic_users:
                 with open(MISSING_RESPONSES_FILE, "w", encoding='utf-8') as f:
@@ -169,6 +179,7 @@ async def monitor_responses():
 
             if first_timestamp < seven_minutes_ago and not email_sent:
                 send_missing_email()
+                print("📧 Email sent with missing responses.")
                 email_sent = True
                 os.remove(DATA_FILE)
                 os.remove(MISSING_RESPONSES_FILE)
