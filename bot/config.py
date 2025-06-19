@@ -6,5 +6,6 @@ name_mapping = {
     "Sopo": "Lavi Nagar",
     "Itay Ben kimon": "Itay Ben kimon",
     "סתיו עיני": "Stav Eini",
+    "Ronen Smotrizky": "Ronen Smotrizky",
     "Ofek Barhum": "Ofek Barhum"
 }

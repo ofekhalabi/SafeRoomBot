@@ -1,3 +1,4 @@
+# קוד מלא עם תיקונים לזיהוי נכון של שמות
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import json
@@ -22,7 +23,10 @@ RECEIVER_EMAIL = os.getenv('RECEIVER_EMAIL')
 
 DATA_FILE = "responses.json"
 MISSING_RESPONSES_FILE = "missing_responses.json"
-expected_names = ["Roei Sheffer", "Gaia Luvchik", "Ofek Halabi", "Sopo", "Itay Ben kimon", "סתיו עיני", "Ofek Barhum"]
+
+# שמות מקוריים לצורך השוואה, מומרים לשמות להצגה
+expected_raw_names = ["Roei Sheffer", "Gaia Luvchik", "Ofek Halabi", "Sopo", "Itay Ben kimon", "סתיו עיני", "Ofek Barhum", "Ronen Smotrizky"]
+expected_names = [name_mapping.get(name, name) for name in expected_raw_names]
 
 user_followup_state = {}
 
@@ -34,18 +38,15 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     text = update.message.text.strip().lower()
 
-    # טריגר לדוח מצב
     if user.full_name == "Ofek Halabi" and text == "דוח מצב":
         await trigger_status_check(context, SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL)
         return
 
-    # תגובה לדוח מצב
     if is_status_check_active() and text in ['1', '2']:
         record_status_response(user.full_name, text)
         await update.message.reply_text("✅ תודה על העדכון!")
         return
 
-    # שאלת המשך על סיבה
     if user_followup_state.get(user.id) == 'awaiting_reason':
         if text in ['1', '2']:
             reason = "אין לי אזעקה" if text == '1' else "אין לי מרחב מוגן"
@@ -60,7 +61,6 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("אנא הקש 1 או 2, או 'כן'.")
         return
 
-    # תשובות רגילות
     if text not in ['כן', 'לא']:
         await update.message.reply_text("אנא השב רק 'כן' או 'לא'.")
         return
@@ -82,7 +82,6 @@ def save_response(user, response, reason=None):
     except FileNotFoundError:
         data = []
 
-    # הסרת תגובות קודמות של המשתמש
     data = [entry for entry in data if entry["user_id"] != user.id]
     mapped_name = name_mapping.get(user.full_name, user.full_name)
     entry = {
@@ -107,19 +106,18 @@ def send_missing_email():
     if not data:
         return
 
-    lines = []
-    for entry in data:
-        lines.append(f"{entry['name']}: {entry['status']}")
-
+    lines = [f"{entry['name']}: {entry['status']}" for entry in data]
     content = "\n".join(lines)
 
-    yag = yagmail.SMTP(SENDER_EMAIL, SENDER_PASSWORD)
-    yag.send(
-        to=RECEIVER_EMAIL,
-        subject="משתמשים שלא ענו כן",
-        contents=f"הנה דוח מצב:\n\n{content}"
-    )
-
+    try:
+        yag = yagmail.SMTP(SENDER_EMAIL, SENDER_PASSWORD)
+        yag.send(
+            to=RECEIVER_EMAIL,
+            subject="משתמשים שלא ענו כן",
+            contents=f"הנה דוח מצב:\n\n{content}"
+        )
+    except Exception as e:
+        print(f"❌ Failed to send missing responses email: {e}")
 
 async def monitor_responses():
     email_sent = False
@@ -142,11 +140,12 @@ async def monitor_responses():
                 continue
 
             now = datetime.now(timezone.utc)
-            seven_minutes_ago = now - timedelta(minutes=)
+            check_time_threshold = now - timedelta(minutes=7)
             first_timestamp = min(
                 datetime.strptime(entry["timestamp"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
                 for entry in data
             )
+
             latest_responses = {}
             for entry in data:
                 name = entry["name"]
@@ -156,12 +155,11 @@ async def monitor_responses():
                         "response": entry["response"],
                         "timestamp": timestamp
                     }
-            
+
             problematic_users = []
             for name in expected_names:
-                display_name = name_mapping.get(name, name)
                 if name not in latest_responses:
-                    problematic_users.append({"name": display_name, "status": "לא ענה בכלל"})
+                    problematic_users.append({"name": name, "status": "לא ענה"})
                 else:
                     entry = latest_responses[name]
                     if entry["response"] != "כן":
@@ -169,7 +167,7 @@ async def monitor_responses():
                         reason = next((e.get("reason") for e in data if e["name"] == name and e["response"] != "כן"), None)
                         if reason:
                             status_text += f", סיבה: {reason}"
-                        problematic_users.append({"name": display_name, "status": status_text})
+                        problematic_users.append({"name": name, "status": status_text})
 
             if problematic_users:
                 with open(MISSING_RESPONSES_FILE, "w", encoding='utf-8') as f:
@@ -177,7 +175,7 @@ async def monitor_responses():
             else:
                 open(MISSING_RESPONSES_FILE, "w").close()
 
-            if first_timestamp < seven_minutes_ago and not email_sent:
+            if first_timestamp < check_time_threshold and not email_sent:
                 send_missing_email()
                 print("📧 Email sent with missing responses.")
                 email_sent = True

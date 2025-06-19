@@ -16,6 +16,7 @@ participants_user_ids = {
     "Itay Ben kimon": 56789012,
     "סתיו עיני": 6557978538,
     "Roei Sheffer": 637947209,
+    "Ronen Smotrizky": 7482984801,
     "Ofek Barhum": 6514536577
 }
 
