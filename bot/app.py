@@ -38,7 +38,7 @@ async def handle_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     text = update.message.text.strip().lower()
 
-    if user.full_name == "Ofek Halabi" and text == "דוח מצב":
+    if user.full_name in ["Ofek Halabi", "Ronen Smotrizky"] and text == "דוח מצב":
         await trigger_status_check(context, SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL)
         return
 
