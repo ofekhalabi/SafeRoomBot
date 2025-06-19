@@ -197,3 +197,4 @@ cython_debug/
 #  This file is used to store the bot token for authentication purposes. It is recommended to keep this file private and not share it publicly.
 bot_token.txt
 myenv
+db.json
